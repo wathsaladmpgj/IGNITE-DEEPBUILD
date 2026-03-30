@@ -64,7 +64,9 @@ export default function Dashboard() {
       <div className="max-w-5xl mx-auto">
         <header className="mb-8 flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <div>
-            <h1 className="text-3xl font-bold text-secondary">N-HELP Dashboard</h1>
+            <h1 className="text-3xl font-bold text-secondary">
+              N-HELP Dashboard
+            </h1>
             <p className="text-gray-500 mt-2 flex items-center gap-2">
               <span className="text-sm">Logged in as:</span>
               <span className="font-semibold text-primary">{user?.email}</span>

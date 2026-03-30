@@ -24,9 +24,26 @@ export default function AdminKanbanBoard() {
     "new" | "in_progress" | "completed"
   >("new");
 
+  const fetchRequests = async () => {
+    const { data, error } = await supabase
+      .from("servicerequest")
+      .select("*")
+      .order("time", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching requests:", error);
+    } else {
+      setRequests(data || []);
+    }
+    setLoading(false);
+  };
+
   // 1. Fetch all requests when the dashboard loads
   useEffect(() => {
-    fetchRequests();
+    const loadData = async () => {
+        await fetchRequests();
+    };
+    loadData();
 
     // 2. Set up Supabase Realtime Listener
     const channel = supabase
@@ -65,20 +82,6 @@ export default function AdminKanbanBoard() {
       supabase.removeChannel(channel);
     };
   }, []);
-
-  const fetchRequests = async () => {
-    const { data, error } = await supabase
-      .from("servicerequest")
-      .select("*")
-      .order("time", { ascending: false });
-
-    if (error) {
-      console.error("Error fetching requests:", error);
-    } else {
-      setRequests(data || []);
-    }
-    setLoading(false);
-  };
 
   // 2. The function to update the database when a button is clicked
   const updateProgress = async (id: number, newProgress: string) => {
