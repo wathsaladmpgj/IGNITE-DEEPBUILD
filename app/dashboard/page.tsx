@@ -2,61 +2,86 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "../../lib/supabase";
+import ServiceRequestForm from "../components/dashboard/ServiceRequestForm";
 
 export default function Dashboard() {
-  const [userEmail, setUserEmail] = useState("");
   const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [role, setRole] = useState<string>("unknown");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Basic check to see if log in simulated state exists
-    const userSession = localStorage.getItem("user");
-    if (!userSession) {
-      router.push("/login");
-    } else {
-      setTimeout(() => {
-        const user = JSON.parse(userSession);
-        setUserEmail(user.email);
-      }, 0);
-    }
+    const checkAuth = async () => {
+      // 1. Get the session directly from the browser's local storage
+      const { data: { session }, error: authError } = await supabase.auth.getSession();
+
+      // If no session is found, kick them to login
+      if (authError || !session?.user) {
+        router.push("/login");
+        return;
+      }
+
+      setUser(session.user);
+
+      // 2. Fetch the user's role from your custom 'users' table
+      const { data: userData, error: dbError } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", session.user.id)
+        .single();
+
+      if (!dbError && userData) {
+        setRole(userData.role);
+      }
+
+      // Stop the loading state once everything is fetched
+      setLoading(false);
+    };
+
+    checkAuth();
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    router.push("/");
-  };
+  // Show a simple loading screen while checking auth to prevent flashing the dashboard
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-xl font-semibold text-gray-500 animate-pulse">Loading dashboard...</p>
+      </div>
+    );
+  }
 
+  // 3. Render the dashboard
   return (
-    <div className="min-h-screen bg-blue-50 flex flex-col">
-      <nav className="bg-blue-600 p-4 shadow-md flex justify-between items-center text-white">
-        <h1 className="text-xl font-bold">Hackathon Dashboard</h1>
-        <button
-          onClick={handleLogout}
-          className="bg-blue-800 hover:bg-blue-900 px-4 py-2 rounded transition"
-        >
-          Log Out
-        </button>
-      </nav>
-      <main className="grow p-8">
-        <div className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow border-l-4 border-blue-500">
-          <h2 className="text-3xl font-semibold text-blue-900 mb-4">
-            Welcome back!
-          </h2>
-          <p className="text-blue-700 text-lg">
-            You are logged in as{" "}
-            <span className="font-bold underline">{userEmail}</span>.
-          </p>
-          <div className="mt-8 p-6 bg-blue-100 rounded border border-blue-200">
-            <h3 className="text-xl font-medium text-blue-800">
-              Dashboard Contents
-            </h3>
-            <p className="text-blue-600 mt-2">
-              Your application data or components can be displayed down below.
-              The application logic assumes you bypassed Supabase authentication
-              effectively and used a simple table insertion!
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-4xl mx-auto">
+        <header className="mb-8 flex justify-between items-center border-b pb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-500 mt-1">
+              Logged in as: <span className="font-semibold text-blue-600">{user?.email}</span> 
+              <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs uppercase tracking-wide font-bold">
+                {role}
+              </span>
             </p>
           </div>
-        </div>
-      </main>
+          
+          {/* Added a quick logout button for you! */}
+          <button 
+            onClick={async () => {
+              await supabase.auth.signOut();
+              router.push("/login");
+            }}
+            className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-md text-sm font-semibold transition"
+          >
+            Log Out
+          </button>
+        </header>
+
+        <main>
+          <ServiceRequestForm role={role} />
+        </main>
+      </div>
     </div>
   );
 }

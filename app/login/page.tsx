@@ -11,42 +11,43 @@ export default function Login() {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+  // Inside your Login component, replace the handleLogin function with this:
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError("");
 
-    if (!email || !password) {
-      setError("Email and password are required");
+  if (!email || !password) {
+    setError("Email and password are required");
+    return;
+  }
+
+  try {
+    // USE SUPABASE AUTH, NOT A MANUAL TABLE QUERY
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password,
+    });
+
+    if (authError || !data.user) {
+      setError("Invalid email or password");
       return;
     }
 
-    try {
-      const { data, error: selectError } = await supabase
-        .from("users")
-        .select("*")
-        .eq("email", email)
-        .eq("password", password)
-        .single();
+    // Supabase Auth automatically creates the session cookie in the browser for you!
+    // No need for localStorage anymore.
 
-      if (selectError || !data) {
-        setError("Invalid email or password");
-        return;
-      }
-
-      // Store a simple session in localStorage since we don't need real security features
-      localStorage.setItem(
-        "user",
-        JSON.stringify({ id: data.id, email: data.email }),
-      );
-      router.push("/dashboard");
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message || "An unexpected error occurred");
-      } else {
-        setError("An unexpected error occurred");
-      }
+    // Force a router refresh so the Next.js server knows about the new cookie, then redirect
+    router.refresh(); 
+    router.push("/dashboard");
+    
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      setError(err.message || "An unexpected error occurred");
+    } else {
+      setError("An unexpected error occurred");
     }
-  };
+  }
+};
 
   return (
     <div className="min-h-screen bg-blue-50 flex flex-col items-center justify-center">
