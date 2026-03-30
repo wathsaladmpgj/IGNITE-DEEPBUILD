@@ -67,9 +67,30 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-secondary-light p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border-t-4 border-primary p-8">
-        <h2 className="text-2xl font-bold mb-2 text-secondary text-center">
+    <div className="min-h-screen flex bg-secondary-light">
+      {/* Left Side - Image Area */}
+      <div className="hidden lg:block lg:w-1/2 relative bg-primary">
+        <img
+          src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
+          alt="Campus"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        {/* Overlay to ensure text readability */}
+        <div className="absolute inset-0 bg-black/40 mix-blend-multiply" />
+        
+        {/* Descriptive Text over the image */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-12 text-center">
+          <h1 className="text-5xl font-bold mb-4 drop-shadow-lg">N-HELP Portal</h1>
+          <p className="text-xl max-w-md drop-shadow-md">
+            Join your campus community to seamlessly manage, track, and resolve service requests.
+          </p>
+        </div>
+      </div>
+
+      {/* Right Side - Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border-t-4 border-primary p-8">
+          <h2 className="text-2xl font-bold mb-2 text-secondary text-center">
           Create an Account
         </h2>
         <p className="text-center text-gray-500 mb-6">Join N-HELP</p>
@@ -151,6 +172,7 @@ export default function Signup() {
           </button>
         </form>
       </div>
+    </div>
     </div>
   );
 }
