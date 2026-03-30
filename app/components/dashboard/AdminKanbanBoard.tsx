@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase"; // Adjust path if needed
-import toast, { Toaster } from "react-hot-toast"; // <-- 1. Import the toast library
+import toast, { Toaster } from "react-hot-toast";
 
 // Define the shape of your database row
 interface ServiceRequest {
@@ -18,10 +18,12 @@ interface ServiceRequest {
 export default function AdminKanbanBoard() {
     const [requests, setRequests] = useState<ServiceRequest[]>([]);
     const [loading, setLoading] = useState(true);
+    
+    // NEW: State to track which tab is currently selected
+    const [activeTab, setActiveTab] = useState<"new" | "in_progress" | "completed">("new");
 
     // 1. Fetch all requests when the dashboard loads
     useEffect(() => {
-        // Fetch initial data
         fetchRequests();
 
         // 2. Set up Supabase Realtime Listener
@@ -33,7 +35,7 @@ export default function AdminKanbanBoard() {
                 (payload) => {
                     const newRequest = payload.new as ServiceRequest;
 
-                    // Add the new request to the board instantly without refreshing!
+                    // Add the new request to the board instantly without refreshing
                     setRequests((prev) => [newRequest, ...prev]);
 
                     // 3. Trigger the Toast if it's CRITICAL
@@ -41,7 +43,7 @@ export default function AdminKanbanBoard() {
                         toast.error(
                             `CRITICAL ALERT: ${newRequest.title} at ${newRequest.location}!`,
                             {
-                                duration: 6000, // Stays on screen for 6 seconds
+                                duration: 6000,
                                 style: {
                                     fontWeight: 'bold',
                                     fontSize: '16px',
@@ -51,26 +53,22 @@ export default function AdminKanbanBoard() {
                             }
                         );
                     } else {
-                        // Optional: A quiet toast for normal tickets
                         toast.success(`New ticket: ${newRequest.title}`);
                     }
                 }
             )
             .subscribe();
 
-        // Cleanup the subscription when the component unmounts
         return () => {
             supabase.removeChannel(channel);
         };
     }, []);
 
-
-
     const fetchRequests = async () => {
         const { data, error } = await supabase
             .from("servicerequest")
             .select("*")
-            .order("time", { ascending: false }); // Newest tickets first
+            .order("time", { ascending: false });
 
         if (error) {
             console.error("Error fetching requests:", error);
@@ -82,7 +80,7 @@ export default function AdminKanbanBoard() {
 
     // 2. The function to update the database when a button is clicked
     const updateProgress = async (id: number, newProgress: string) => {
-        // Optimistic UI update: Move the card instantly for a snappy feel
+        // Optimistic UI update
         setRequests((prev) =>
             prev.map((req) => (req.id === id ? { ...req, progress: newProgress } : req))
         );
@@ -95,13 +93,11 @@ export default function AdminKanbanBoard() {
 
         if (error) {
             console.error("Error updating progress:", error);
-            // If it fails, refresh the data to revert the optimistic update
             fetchRequests();
         }
     };
 
-    // 3. Filter the tickets into their respective columns
-    // Note: We are using "new", "in_progress", and "completed" as the DB values
+    // 3. Filter the tickets
     const newRequests = requests.filter((req) => req.progress === "new" || !req.progress);
     const inProgressRequests = requests.filter((req) => req.progress === "in_progress");
     const completedRequests = requests.filter((req) => req.progress === "completed");
@@ -122,85 +118,115 @@ export default function AdminKanbanBoard() {
     };
 
     return (
-<>
-        {/* This renders the actual popups on the screen */}
-      <Toaster position="top-right" reverseOrder={false} />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* COLUMN 1: NEW */}
-            <div className="bg-gray-100 rounded-lg p-4 min-h-[500px] border border-gray-200">
-                <h3 className="font-bold text-gray-700 mb-4 flex justify-between items-center">
-                    NEW <span className="bg-gray-200 text-gray-600 px-2 py-1 rounded-full text-xs">{newRequests.length}</span>
-                </h3>
-                <div className="space-y-4">
-                    {newRequests.map((req) => (
-                        <div key={req.id} className="bg-white p-4 rounded-md shadow-sm border border-gray-200 flex flex-col">
-                            <div className="flex justify-between items-start mb-2">
-                                <h4 className="font-bold text-gray-900">{req.title}</h4>
+        <>
+            <Toaster position="top-right" reverseOrder={false} />
+            
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 min-h-[600px]">
+                
+                {/* TABS HEADER */}
+                <div className="flex flex-wrap gap-2 border-b border-gray-200 mb-6 pb-2">
+                    <button
+                        onClick={() => setActiveTab("new")}
+                        className={`px-6 py-2 text-sm font-bold rounded-t-lg transition-all ${
+                            activeTab === "new" 
+                            ? "bg-gray-100 text-gray-800 border-b-4 border-gray-400" 
+                            : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
+                        }`}
+                    >
+                        NEW <span className="ml-2 bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs">{newRequests.length}</span>
+                    </button>
+                    
+                    <button
+                        onClick={() => setActiveTab("in_progress")}
+                        className={`px-6 py-2 text-sm font-bold rounded-t-lg transition-all ${
+                            activeTab === "in_progress" 
+                            ? "bg-blue-50 text-blue-800 border-b-4 border-blue-500" 
+                            : "text-gray-500 hover:text-blue-800 hover:bg-blue-50/50"
+                        }`}
+                    >
+                        IN PROGRESS <span className="ml-2 bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full text-xs">{inProgressRequests.length}</span>
+                    </button>
+                    
+                    <button
+                        onClick={() => setActiveTab("completed")}
+                        className={`px-6 py-2 text-sm font-bold rounded-t-lg transition-all ${
+                            activeTab === "completed" 
+                            ? "bg-green-50 text-green-800 border-b-4 border-green-500" 
+                            : "text-gray-500 hover:text-green-800 hover:bg-green-50/50"
+                        }`}
+                    >
+                        COMPLETED <span className="ml-2 bg-green-200 text-green-800 px-2 py-0.5 rounded-full text-xs">{completedRequests.length}</span>
+                    </button>
+                </div>
+
+                {/* TAB CONTENT AREAS */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    
+                    {/* NEW TAB CONTENT */}
+                    {activeTab === "new" && newRequests.length === 0 && (
+                        <p className="text-gray-500 italic col-span-full">No new requests.</p>
+                    )}
+                    {activeTab === "new" && newRequests.map((req) => (
+                        <div key={req.id} className="bg-gray-50 p-5 rounded-lg shadow-sm border border-gray-200 flex flex-col hover:shadow-md transition">
+                            <div className="flex justify-between items-start mb-3">
+                                <h4 className="font-bold text-gray-900 text-lg">{req.title}</h4>
                                 <PriorityBadge priority={req.priority} />
                             </div>
-                            <p className="text-sm text-gray-600 mb-2 line-clamp-2">{req.description}</p>
-                            <p className="text-xs text-gray-500 mb-4 font-mono">📍 {req.location}</p>
+                            <p className="text-sm text-gray-600 mb-3 line-clamp-3 flex-grow">{req.description}</p>
+                            <p className="text-xs text-gray-500 mb-4 font-mono bg-white inline-block px-2 py-1 rounded border">📍 {req.location}</p>
 
                             <button
                                 onClick={() => updateProgress(req.id, "in_progress")}
-                                className="mt-auto w-full py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 font-semibold text-sm rounded transition"
+                                className="w-full py-2.5 bg-blue-100 text-blue-700 hover:bg-blue-200 font-bold text-sm rounded-md transition"
                             >
-                                Mark In Progress ➡️
+                                Start Work (Move to In Progress) ➡️
                             </button>
                         </div>
                     ))}
-                </div>
-            </div>
 
-            {/* COLUMN 2: IN PROGRESS */}
-            <div className="bg-blue-50 rounded-lg p-4 min-h-[500px] border border-blue-100">
-                <h3 className="font-bold text-blue-800 mb-4 flex justify-between items-center">
-                    IN PROGRESS <span className="bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs">{inProgressRequests.length}</span>
-                </h3>
-                <div className="space-y-4">
-                    {inProgressRequests.map((req) => (
-                        <div key={req.id} className="bg-white p-4 rounded-md shadow-sm border border-blue-200 flex flex-col border-l-4 border-l-blue-500">
-                            <div className="flex justify-between items-start mb-2">
-                                <h4 className="font-bold text-gray-900">{req.title}</h4>
+                    {/* IN PROGRESS TAB CONTENT */}
+                    {activeTab === "in_progress" && inProgressRequests.length === 0 && (
+                        <p className="text-gray-500 italic col-span-full">No tasks currently in progress.</p>
+                    )}
+                    {activeTab === "in_progress" && inProgressRequests.map((req) => (
+                        <div key={req.id} className="bg-white p-5 rounded-lg shadow-sm border border-blue-200 flex flex-col border-l-4 border-l-blue-500 hover:shadow-md transition">
+                            <div className="flex justify-between items-start mb-3">
+                                <h4 className="font-bold text-gray-900 text-lg">{req.title}</h4>
                                 <PriorityBadge priority={req.priority} />
                             </div>
-                            <p className="text-sm text-gray-600 mb-2 line-clamp-2">{req.description}</p>
-                            <p className="text-xs text-gray-500 mb-4 font-mono">📍 {req.location}</p>
+                            <p className="text-sm text-gray-600 mb-3 line-clamp-3 flex-grow">{req.description}</p>
+                            <p className="text-xs text-gray-500 mb-4 font-mono bg-blue-50 inline-block px-2 py-1 rounded border border-blue-100">📍 {req.location}</p>
 
                             <button
                                 onClick={() => updateProgress(req.id, "completed")}
-                                className="mt-auto w-full py-2 bg-green-50 text-green-600 hover:bg-green-100 font-semibold text-sm rounded transition"
+                                className="w-full py-2.5 bg-green-100 text-green-700 hover:bg-green-200 font-bold text-sm rounded-md transition"
                             >
-                                Mark Completed ✅
+                                Mark as Completed ✅
                             </button>
                         </div>
                     ))}
-                </div>
-            </div>
 
-            {/* COLUMN 3: COMPLETED */}
-            <div className="bg-green-50 rounded-lg p-4 min-h-[500px] border border-green-100">
-                <h3 className="font-bold text-green-800 mb-4 flex justify-between items-center">
-                    COMPLETED <span className="bg-green-200 text-green-800 px-2 py-1 rounded-full text-xs">{completedRequests.length}</span>
-                </h3>
-                <div className="space-y-4">
-                    {completedRequests.map((req) => (
-                        <div key={req.id} className="bg-white p-4 rounded-md shadow-sm border border-green-200 flex flex-col border-l-4 border-l-green-500 opacity-75">
-                            <div className="flex justify-between items-start mb-2">
-                                <h4 className="font-bold text-gray-900 line-through">{req.title}</h4>
+                    {/* COMPLETED TAB CONTENT */}
+                    {activeTab === "completed" && completedRequests.length === 0 && (
+                        <p className="text-gray-500 italic col-span-full">No completed tasks yet.</p>
+                    )}
+                    {activeTab === "completed" && completedRequests.map((req) => (
+                        <div key={req.id} className="bg-white p-5 rounded-lg shadow-sm border border-green-200 flex flex-col border-l-4 border-l-green-500 opacity-80 hover:opacity-100 transition">
+                            <div className="flex justify-between items-start mb-3">
+                                <h4 className="font-bold text-gray-900 text-lg line-through text-gray-400">{req.title}</h4>
                                 <PriorityBadge priority={req.priority} />
                             </div>
-                            <p className="text-sm text-gray-600 mb-2 line-clamp-2">{req.description}</p>
-                            <p className="text-xs text-gray-500 mb-2 font-mono">📍 {req.location}</p>
-                            <p className="text-xs text-green-600 font-semibold mt-auto text-center py-2 bg-green-50 rounded">
-                                Resolved
-                            </p>
+                            <p className="text-sm text-gray-500 mb-3 line-clamp-3 flex-grow">{req.description}</p>
+                            <p className="text-xs text-gray-400 mb-4 font-mono bg-green-50 inline-block px-2 py-1 rounded border border-green-100">📍 {req.location}</p>
+                            
+                            <div className="w-full py-2 bg-green-50 border border-green-100 text-green-700 font-bold text-sm rounded-md text-center">
+                                Task Resolved 🎉
+                            </div>
                         </div>
                     ))}
+
                 </div>
             </div>
-
-        </div>
         </>
     );
 }
