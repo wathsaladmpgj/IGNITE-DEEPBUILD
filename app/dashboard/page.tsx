@@ -81,7 +81,7 @@ export default function Dashboard() {
         </header>
 
         <main>
-          {role === "student" ? (
+          {role === "student" || role === "staff"? (
     <ServiceRequestForm role={role} />
   ) : (
     <AdminKanbanBoard />
