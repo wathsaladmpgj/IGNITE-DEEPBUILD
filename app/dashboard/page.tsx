@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import ServiceRequestForm from "../components/dashboard/ServiceRequestForm";
+import AdminKanbanBoard from "../components/dashboard/AdminKanbanBoard";
+
 
 export default function Dashboard() {
   const router = useRouter();
@@ -79,7 +81,11 @@ export default function Dashboard() {
         </header>
 
         <main>
-          <ServiceRequestForm role={role} />
+          {role === "student" ? (
+    <ServiceRequestForm role={role} />
+  ) : (
+    <AdminKanbanBoard />
+  )}
         </main>
       </div>
     </div>
